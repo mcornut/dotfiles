@@ -1,0 +1,115 @@
+[init]
+	defaultBranch = main
+
+[user]
+	name = Matthieu CORNUT-CHAUVINC
+	email = mcornutchauvinc@gmail.com
+	signingkey = 33A0066043E2B9D8
+
+[includeIf "hasconfig:remote.*.url:git@github.com:MolotovTv/**"]
+	path = ~/.gitconfig_molotovtv
+
+[includeIf "hasconfig:remote.*.url:git@github.com:fubotv/**"]
+	path = ~/.gitconfig_fubo
+
+[core]
+	editor = vi
+	autocrlf = input
+	excludesfile = ~/.gitignore_global
+	ignorecase = false
+	hooksPath = "~/code/dotfiles/scripts/hooks"
+
+[diff]
+	mnemonicPrefix = true
+	renames = true
+	colorMoved = default
+
+[interactive]
+	diffFilter = delta --color-only
+
+[pull]
+	rebase = merges
+
+[push]
+	default = current
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+
+[commit]
+	gpgsign = true
+
+[tag]
+	gpgsign = true
+
+[rebase]
+	autosquash = true
+
+[log]
+	abbrevCommit = true
+
+[color]
+	ui = true
+
+[alias]
+	last-tag = ! git describe --tag --abbrev=0 2> /dev/null
+	remote-repository = ! [[ \"$(git remote get-url --push $(git remote show | head -1))\" =~ ^.*@.*:(.*).git$ ]] && printf '%s' \"${BASH_REMATCH[1]}\"
+	web-url = ! [[ "$(git remote get-url --push $(git remote show | head -1))" =~ ^.*@(.*)[:/](.*)/(.*)$ ]] && printf 'https://%s/%s/%s' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]%.git}"
+	web = ! open "$(git web-url)"
+	pr = ! open "$(git web-url)/compare/$(git default-branch)...$(git current-branch)?expand=1"
+	fco = "! git switch \"$(git branch -vv --all | fzf --height 20 --ansi --select-1 --reverse --query=\"remotes/${1:-}\" | awk '{printf(\"%s\", $1)}' | sed 's|^remotes/origin/||')\" #"
+	fixup = ! git ci --fixup "$(git log-pretty "$(git default-branch).." --grep "^fixup" --invert-grep | fzf --height 20 --ansi --reverse | awk '{printf(\"%s\", $1)}')"
+	file-list = ! git ls-files | grep --invert-match package-lock.json | grep --extended-regexp --invert-match '.jpg$|.jpeg$|.png$|.gif$|.ico$|.lock$|.sum$|.jar$|.bat$|.otf$|.woff$|.svg$|.xml$'
+	files-commits = ! git log --format=format: --name-only | grep --extended-regexp --invert-match '^$' | sort | uniq -c | sort -rg | head -10
+	lines-count = ! git file-list | xargs wc -l 2>/dev/null | tail -1
+	authors-commits = ! git log --format=%an | grep --extended-regexp --invert-match '^$' | sort | uniq -c | sort -rg | head -10
+	authors-lines = ! git file-list | xargs -n 1 git blame --porcelain 2>/dev/null | grep '^author ' | sed 's|author ||g' | sort | uniq -c | sort -rg | head -10
+	oopsie = ! git filter-branch --force --index-filter "git rm --cached --ignore-unmatch -r ${1}" --prune-empty --tag-name-filter cat -- --all
+	copr = !sh -c 'git fetch origin "pull/${1}/head:pr/${1}" && git switch "pr/${1}"' -
+	up = ! git pull --rebase origin "$(git default-branch)"
+	tidy = ! git rebase --signoff --interactive "origin/$(git default-branch)"
+	adiws = ! git diff --no-color --ignore-all-space | git apply --cached
+	adibl = ! git diff --no-color --ignore-blank-lines | git apply --cached
+	commend = ci --amend --no-edit
+	pushf = push --force-with-lease
+	pp = ! git pull && git push
+	pur = ! git push && git pr
+	co = checkout
+	ci = commit --signoff
+	d = diff --ignore-all-space
+	s = status --short --branch
+	unstage = reset HEAD --
+	fresh-clean = ! git reset HEAD -- . && git checkout -- . && git clean -ffxd
+	current-branch = rev-parse --abbrev-ref HEAD
+	default-branch = config branch.default
+	set-default-branch = ! git config branch.default "$(git get-default-branch)"
+	get-default-branch = ! git remote show origin | grep 'HEAD branch:' | awk '{printf(\"%s\", $3)}'
+	default = ! git switch "$(git default-branch)"
+	log-pretty = log --color --date=local --pretty=format:'%C(red)%h%C(reset)%C(yellow)%d%C(reset) %s %C(green)(%cr) %C(magenta)(%cd) %C(bold blue)<%an>%C(reset)'
+	lg = log-pretty --graph
+	changelog = ! git log --no-merges --pretty=format:'%C(red)%h%C(reset) %s' "${2:-HEAD}...${1:-$(git last-tag)}"
+	find = log-pretty -S
+	filehistory = log-pretty --
+	linehistory = log-pretty -L
+	sweep = ! git prune && git remote prune origin && git branch --list --format '%(if:equals=[gone])%(upstream:track)%(then)%(refname:short)%(end)' | grep --extended-regexp --invert-match '^$' | xargs git branch --delete --force && git gc
+	unshallow = ! git remote set-branches origin '*' && git pull --unshallow
+
+[merge]
+	tool = smerge
+
+[mergetool]
+	keepBackup = false
+
+[mergetool "smerge"]
+	cmd = smerge mergetool \"$BASE\" \"$LOCAL\" \"$REMOTE\" -o \"$MERGED\"
+	trustExitCode = true
+
+[url "ssh://git@github.com/MolotovTv/"]
+	insteadOf = https://github.com/MolotovTv/
+
+[url "ssh://git@github.com/MolotovTv/"]
+	insteadOf = https://github.com/molotovtv/
+
+[url "ssh://git@github.com/fubotv/"]
+	insteadOf = https://github.com/fubotv/

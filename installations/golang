@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+set -o nounset -o pipefail -o errexit
+
+script_dir() {
+  local FILE_SOURCE="${BASH_SOURCE[0]}"
+
+  if [[ -L ${FILE_SOURCE} ]]; then
+    dirname "$(readlink "${FILE_SOURCE}")"
+  else
+    (
+      cd "$(dirname "${FILE_SOURCE}")" && pwd
+    )
+  fi
+}
+
+clean() {
+  if [[ -n ${GOPATH-} ]]; then
+    sudo rm -rf "${GOPATH}"
+    mkdir -p "${GOPATH}"
+  fi
+
+  rm -rf "${HOME}/.dlv"
+  rm -rf "${HOME}/opt/go"
+  rm -rf "${HOME}/pprof"
+}
+
+install() {
+  local GO_VERSION="1.21.4"
+
+  if [[ ! -d "${HOME}/opt/go" ]]; then
+    local GO_ARCHIVE
+    GO_ARCHIVE="go${GO_VERSION}.$(normalized_os)-$(normalized_arch "amd64" "armv6l" "arm64").tar.gz"
+
+    curl --disable --silent --show-error --location --max-time 300 --remote-name "https://dl.google.com/go/${GO_ARCHIVE}"
+    tar -C "${HOME}/opt" -xzf "${GO_ARCHIVE}"
+    rm -rf "${GO_ARCHIVE}"
+  fi
+
+  local SCRIPT_DIR
+  SCRIPT_DIR="$(script_dir)"
+  source "${SCRIPT_DIR}/../sources/_golang"
+  mkdir -p "${GOPATH}"
+
+  packages_install graphviz
+
+  if command -v go >/dev/null 2>&1; then
+    go install "github.com/go-delve/delve/cmd/dlv@latest"
+    go install "github.com/derailed/popeye@latest"
+    go install "go.uber.org/mock/mockgen@latest"
+    go install "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+    go install "github.com/tsenart/vegeta@latest"
+    go install "github.com/ViBiOh/registry-cleaner@latest"
+    go install "golang.org/x/tools/cmd/goimports@latest"
+    go install "golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@master"
+    go install "mvdan.cc/gofumpt@latest"
+
+    golangci-lint completion bash >"${SCRIPT_DIR}/../sources/golangci-lint-completion"
+  fi
+
+  # renovate: datasource=github-releases depName=golang-migrate/migrate
+  local GOLANG_MIGRATE_VERSION="v4.16.2"
+  archive_to_binary "https://github.com/golang-migrate/migrate/releases/download/${GOLANG_MIGRATE_VERSION}/migrate.$(normalized_os)-$(normalized_arch "amd64" "armv7" "arm64").tar.gz" "migrate"
+}

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+mtv_aws() {
+  cat >"${HOME}/.aws/credentials" <<EOF
+[dev-aws]
+output = json
+region = ${AWS_REGION}
+role_arn = ${AWS_DEV_ROLE}
+source_profile = saml
+
+[stag-aws]
+output = json
+region = ${AWS_REGION}
+role_arn = ${AWS_STAG_ROLE}
+source_profile = saml
+
+[prod-aws]
+output = json
+region = ${AWS_REGION}
+role_arn = ${AWS_PROD_ROLE}
+source_profile = saml
+
+[sandbox-aws]
+output = json
+region = ${AWS_REGION}
+role_arn = ${AWS_SANDBOX_ROLE}
+source_profile = saml
+
+[shared-services-aws]
+output = json
+region = ${AWS_REGION}
+role_arn = ${AWS_SHARED_SERVICES_ROLE}
+source_profile = saml
+EOF
+
+  GITHUB_TOKEN="$(github_token)" go-aws --no-save --login "$(whoami)" --password "$(pass show "molotov/ldap" | head -1)" --role "${AWS_USER_ROLE}" refresh-token
+  chmod 600 "${HOME}/.aws/credentials"
+
+  aws --profile "shared-services-aws" ecr get-login-password --region "${AWS_REGION}" | docker login --username "AWS" --password-stdin "${AWS_SHARED_SERVICES_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+}

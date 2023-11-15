@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+export GOPRIVATE="github.com/molotovtv/*,github.com/fubotv/*"
+alias maws='GITHUB_TOKEN="$(github_token)" DOCKER_CONTENT_TRUST=0 go-aws --no-save --login "$(whoami)" --password "$(pass show "molotov/ldap" | head -1)" --role "${AWS_USER_ROLE}"'
+
+mtv_vpn() {
+  dns_flush
+  loop "traceroute ${MTV_PRIMARY_DNS}"
+}
+
+if command -v aws_completer >/dev/null 2>&1; then
+  complete -C 'aws_completer' aws
+fi
+
+if [[ $(type -t "__start_go-aws") == "function" ]]; then
+  complete -o default -F __start_go-aws maws
+fi
+
+kdev() {
+  kube --context "${GCP_DEV_PROJECT_NAME}_api-cluster-east4" --context "${GCP_DEV_PROJECT_NAME}_api-cluster-west2" "${@}"
+}
+
+[[ -n ${BASH} ]] && complete -F _fzf_complete_kube -o default -o bashdefault kdev
+
+kqa() {
+  kube --context "${GCP_QA_PROJECT_NAME}_api-cluster-europe-west9" --context "${GCP_QA_PROJECT_NAME}_api-cluster-east4" --context "${GCP_QA_PROJECT_NAME}_api-cluster-west2" "${@}"
+}
+
+[[ -n ${BASH} ]] && complete -F _fzf_complete_kube -o default -o bashdefault kqa
+
+kprod() {
+  kube --context "${GCP_PROD_PROJECT_NAME}_api-cluster-east4" --context "${GCP_PROD_PROJECT_NAME}_api-cluster-central1" --context "${GCP_PROD_PROJECT_NAME}_api-cluster-west2" "${@}"
+}
+
+[[ -n ${BASH} ]] && complete -F _fzf_complete_kube -o default -o bashdefault kprod
+
+qa_jira_update() {
+  local TARGET_REF
+  TARGET_REF="$(git log --remotes=origin/release-* --oneline --pretty=format:%d | grep -Po 'origin/[^)]*' | fzf --height=20 --ansi --reverse --select-1 --query="${1-}")"
+
+  if [[ -z ${TARGET_REF-} ]]; then
+    return 1
+  fi
+
+  git log --no-merges --pretty=format:'%C(red)%h%C(reset) %s' "HEAD...${TARGET_REF}" | grep -Po "[A-Z]+-[0-9]{3,}" | xargs -n 1 -I{} jira transition {} "Ready for QA"
+}
+
+if [[ -e "${HOME}/workspace/subscription-shell-tools/internal/commands/heap/release.sh" ]]; then
+  source "${HOME}/workspace/subscription-shell-tools/internal/commands/heap/release.sh"
+fi

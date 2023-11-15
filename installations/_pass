@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -o nounset -o pipefail -o errexit
+
+install() {
+  packages_install pass
+
+  if [[ ${OSTYPE} =~ ^darwin ]]; then
+    packages_install pass-otp
+  elif command -v apt-get >/dev/null 2>&1; then
+    packages_install pass-extension-otp
+  fi
+}
+
+credentials() {
+  if ! command -v pass >/dev/null 2>&1; then
+    return
+  fi
+
+  if [[ ! -d ${PASSWORD_STORE_DIR:-${HOME}/.password-store} ]]; then
+    return
+  fi
+
+  pass git pull
+}

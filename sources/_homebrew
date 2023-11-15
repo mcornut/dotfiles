@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+export HOMEBREW_NO_ANALYTICS="1"
+export HOMEBREW_NO_INSECURE_REDIRECT="1"
+export HOMEBREW_CASK_OPTS="--require-sha"
+
+if command -v brew >/dev/null 2>&1; then
+  BREW_PREFIX="$(brew --prefix)"
+  export BREW_PREFIX
+
+  export PATH="${BREW_PREFIX}/opt/libpq/bin:${BREW_PREFIX}/opt/ruby/bin:${BREW_PREFIX}/opt/openssl/bin:${BREW_PREFIX}/opt/grep/libexec/gnubin:${BREW_PREFIX}/opt/make/libexec/gnubin:${BREW_PREFIX}/opt/curl/bin:${BREW_PREFIX}/sbin:${PATH}"
+
+  brew_specific_version() {
+    # cf. https://github.com/orgs/Homebrew/discussions/155
+
+    brew tap-new "$(whoami)/${1}"
+    brew extract --version "${2}" "${1}" "$(whoami)/${1}"
+    brew install "${1}/${2}"
+  }
+fi

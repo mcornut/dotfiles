@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+set -o nounset -o pipefail -o errexit
+
+clean() {
+  if command -v ssh_agent_stop >/dev/null 2>&1; then
+    set +e
+    ssh_agent_stop
+    set -e
+  fi
+
+  rm -rf "${HOME}/.ssh"
+}
+
+install() {
+  local EXTRA_CONFIG=""
+
+  if [[ ${OSTYPE} =~ ^darwin ]]; then
+    EXTRA_CONFIG="
+  UseKeyChain no"
+  fi
+
+  mkdir -p "${HOME}/.ssh"
+
+  echo "Host *
+  PasswordAuthentication no
+  ChallengeResponseAuthentication no
+  HashKnownHosts yes${EXTRA_CONFIG}
+  ServerAliveInterval 300
+  ServerAliveCountMax 2
+" >"${HOME}/.ssh/config"
+
+  ssh-keyscan github.com >"${HOME}/.ssh/known_hosts"
+  ssh-keyscan gitlab.com >>"${HOME}/.ssh/known_hosts"
+
+  find "${HOME}/.ssh/" -name "config_*" -type f -exec cat {} + >>"${HOME}/.ssh/config"
+  find "${HOME}/.ssh/" -name "known_hosts_*" -type f -exec cat {} + >>"${HOME}/.ssh/known_hosts"
+}
+
+credentials() {
+  if ! command -v pass >/dev/null 2>&1; then
+    return
+  fi
+
+  if [[ ! -d ${PASSWORD_STORE_DIR:-${HOME}/.password-store} ]]; then
+    return
+  fi
+
+  extract_secret "infra/ssh" ".ssh/config"
+}

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+fix_spotlight() {
+  sudo mdutil -a -d -i off
+  sudo mdutil -X "/"
+  sudo mdutil -X "/System/Volumes/Data"
+}
+
+macos_start() {
+  fix_spotlight
+  dns_set "127.0.0.1"
+  dns_flush
+
+  defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
+  defaults write NSGlobalDomain com.apple.mouse.scaling -int 2
+}

@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+if command -v colima >/dev/null 2>&1; then
+  docker_start() {
+    colima start --runtime=containerd --vm-type vz --mount-type virtiofs
+  }
+
+  docker_stop() {
+    colima stop
+    colima delete --force
+  }
+
+  docker_login() {
+    pass show "dev/docker" | head -1 | docker login --username "$(pass_get "dev/docker" "login")" --password-stdin
+  }
+fi
+
+if command -v docker >/dev/null 2>&1; then
+  export DOCKER_CONTENT_TRUST="1"
+
+  docker_clean() {
+    docker ps --all --quiet | xargs docker rm --force --volumes
+    docker images --quiet | xargs docker rmi
+    docker images --format '{{ .Repository }}:{{ .Tag}}' | xargs docker rmi
+    docker network ls --format '{{ json .}}' | jq --raw-output 'select(.Name != "bridge" and .ID != "") | .Name' | xargs docker network rm
+    docker volume ls --quiet | xargs docker volume rm
+  }
+
+  redis() {
+    docker run --name "redis" --rm --publish "127.0.0.1:6379:6379" "redis" redis-server --save "" --appendonly no
+  }
+
+  postgres() {
+    docker run --name "postgres" --rm --env "POSTGRES_PASSWORD=postgres" --env "POSTGRES_DB=${1:-postgres}" --publish "127.0.0.1:5432:5432" "postgres"
+  }
+
+  rabbit() {
+    docker run --name "rabbit" --rm --publish "127.0.0.1:5672:5672" --publish "127.0.0.1:15672:15672" "rabbitmq:management"
+  }
+
+  otel-collector() {
+    local OTEL_CONFIG_FILE="${HOME}/Downloads/otel-collector.yaml"
+
+    cat >"${OTEL_CONFIG_FILE}" <<EOF
+---
+receivers:
+  otlp:
+    protocols:
+      grpc:
+
+exporters:
+  logging:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers:
+        - otlp
+      exporters:
+        - logging
+
+    traces:
+      receivers:
+        - otlp
+      exporters:
+        - logging
+EOF
+
+    docker run \
+      --name otel-collector \
+      --rm \
+      --publish "127.0.0.1:4317:4317/tcp" \
+      --volume "${OTEL_CONFIG_FILE}:/var/config.yaml:ro" \
+      otel/opentelemetry-collector -- --config "/var/config.yaml"
+
+    rm -f "${OTEL_CONFIG_FILE}"
+  }
+
+  datadog_agent() {
+    docker run --name "datadog" \
+      --rm \
+      --env "DD_API_KEY=${DATADOG_APIKEY}" \
+      --env "DD_ENV=localhost" \
+      --env "DD_HOSTNAME=$(whoami)" \
+      --env "DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true" \
+      --env "DD_CRI_SOCKET_PATH=/var/run/containerd/containerd.sock" \
+      --publish "127.0.0.1:8125:8125/udp" \
+      --publish "127.0.0.1:8126:8126/tcp" \
+      --volume "/var/run/containerd/containerd.sock:/var/run/containerd/containerd.sock:ro" \
+      --volume "/proc/:/host/proc/:ro" \
+      --volume "/sys/fs/cgroup/:/host/sys/fs/cgroup:ro" \
+      --cgroupns "host" \
+      --pid "host" \
+      "gcr.io/datadoghq/agent:latest"
+  }
+
+  pubsub_emulator() {
+    docker run --name "pubsub" \
+      --rm \
+      --publish "127.0.0.1:8085:8085" "gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators" gcloud beta emulators pubsub start \
+      --project=localhost \
+      --host-port=0.0.0.0:8085
+  }
+fi

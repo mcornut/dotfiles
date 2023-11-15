@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -o nounset -o pipefail -o errexit
+
+script_dir() {
+  local FILE_SOURCE="${BASH_SOURCE[0]}"
+
+  if [[ -L ${FILE_SOURCE} ]]; then
+    dirname "$(readlink "${FILE_SOURCE}")"
+  else
+    (
+      cd "$(dirname "${FILE_SOURCE}")" && pwd
+    )
+  fi
+}
+
+install() {
+  packages_install git git-lfs git-delta
+
+  if ! command -v git >/dev/null 2>&1; then
+    return
+  fi
+
+  curl --disable --silent --show-error --location --max-time 30 --output "$(script_dir)/../sources/git-prompt" "https://raw.githubusercontent.com/git/git/v$(git --version | awk '{printf("%s", $3)}')/contrib/completion/git-prompt.sh"
+}

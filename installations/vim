@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -o nounset -o pipefail -o errexit
+
+clean() {
+  rm -rf "${HOME}/.vim/"
+  rm -rf "${HOME}/.viminfo"
+}
+
+install() {
+  packages_install vim
+}

@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+set -o nounset -o pipefail -o errexit
+
+script_dir() {
+  local FILE_SOURCE="${BASH_SOURCE[0]}"
+
+  if [[ -L ${FILE_SOURCE} ]]; then
+    dirname "$(readlink "${FILE_SOURCE}")"
+  else
+    (
+      cd "$(dirname "${FILE_SOURCE}")" && pwd
+    )
+  fi
+}
+
+clean() {
+  rm -rf "${HOME}/.molotov-aws" "${HOME}/.myclirc"
+}
+
+install_mycli() {
+  echo "[main]
+multi_line = True
+auto_vertical_output = True
+row_limit = 100
+log_level = ERROR
+" >"${HOME}/.myclirc"
+}
+
+install() {
+  if command -v brew >/dev/null 2>&1; then
+    brew install mycli protobuf
+    brew install --cask tunnelblick
+  fi
+
+  go install "github.com/molotovtv/go-aws@master"
+  go install "github.com/molotovtv/go-i18n/cmd/i18n-analyzer@master"
+  go install "github.com/GoogleCloudPlatform/cloudsql-proxy/cmd/cloud_sql_proxy@latest"
+
+  install_mycli
+
+  dns_allow "aws"
+  dns_allow "datadog"
+
+  docker_start
+}
+
+credentials() {
+  extract_secret "molotov/myclirc" ".myclirc"
+
+  local K8S_CURRENT_CONTEXT
+  K8S_CURRENT_CONTEXT="$(kubectl config current-context)"
+
+  # mtv_aws
+  # aws eks --profile "dev-aws" --region "${AWS_REGION}" update-kubeconfig --name dev
+  # aws eks --profile "stag-aws" --region "${AWS_REGION}" update-kubeconfig --name stag
+
+  GITHUB_TOKEN="$(github_token)" go-aws --no-save completion bash --no-descriptions >"$(script_dir)/../sources/go-aws-completion"
+
+  gcloud_auth
+
+  gcloud_kube_import "${GCP_DEV_PROJECT_NAME}" "api-cluster east4" "subscription"
+  gcloud_kube_import "${GCP_DEV_PROJECT_NAME}" "api-cluster west2" "subscription"
+
+  gcloud_kube_import "${GCP_QA_PROJECT}" "api-cluster west9" "subscription"
+  gcloud_kube_import "${GCP_QA_PROJECT}" "api-cluster east4" "subscription"
+  gcloud_kube_import "${GCP_QA_PROJECT}" "api-cluster west2" "subscription"
+
+  gcloud_kube_import "${GCP_PROD_PROJECT_NAME}" "api-cluster east4" "subscription"
+  gcloud_kube_import "${GCP_PROD_PROJECT_NAME}" "api-cluster central1" "subscription"
+  gcloud_kube_import "${GCP_PROD_PROJECT_NAME}" "api-cluster west2" "subscription"
+
+  kubectl config use-context "${K8S_CURRENT_CONTEXT}"
+}
