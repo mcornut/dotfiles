@@ -11,7 +11,7 @@ Please have a look at this article [here](https://dev.to/vibioh/dotfiles-5695)
 ## Installation
 
 ```bash
-curl "https://dotfiles.vibioh.fr/bootstrap" | bash
+curl "https://raw.githubusercontent.com/mcornut/dotfiles/master/bootstrap" | bash
 ```
 
 ## Update
