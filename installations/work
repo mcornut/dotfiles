@@ -46,29 +46,5 @@ install() {
 }
 
 credentials() {
-  extract_secret "molotov/myclirc" ".myclirc"
 
-  local K8S_CURRENT_CONTEXT
-  K8S_CURRENT_CONTEXT="$(kubectl config current-context)"
-
-  # mtv_aws
-  # aws eks --profile "dev-aws" --region "${AWS_REGION}" update-kubeconfig --name dev
-  # aws eks --profile "stag-aws" --region "${AWS_REGION}" update-kubeconfig --name stag
-
-  GITHUB_TOKEN="$(github_token)" go-aws --no-save completion bash --no-descriptions >"$(script_dir)/../sources/go-aws-completion"
-
-  gcloud_auth
-
-  gcloud_kube_import "${GCP_DEV_PROJECT_NAME}" "api-cluster east4" "subscription"
-  gcloud_kube_import "${GCP_DEV_PROJECT_NAME}" "api-cluster west2" "subscription"
-
-  gcloud_kube_import "${GCP_QA_PROJECT}" "api-cluster west9" "subscription"
-  gcloud_kube_import "${GCP_QA_PROJECT}" "api-cluster east4" "subscription"
-  gcloud_kube_import "${GCP_QA_PROJECT}" "api-cluster west2" "subscription"
-
-  gcloud_kube_import "${GCP_PROD_PROJECT_NAME}" "api-cluster east4" "subscription"
-  gcloud_kube_import "${GCP_PROD_PROJECT_NAME}" "api-cluster central1" "subscription"
-  gcloud_kube_import "${GCP_PROD_PROJECT_NAME}" "api-cluster west2" "subscription"
-
-  kubectl config use-context "${K8S_CURRENT_CONTEXT}"
 }

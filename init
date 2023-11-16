@@ -107,7 +107,7 @@ main() {
       RUN_SYMLINKS=1
       RUN_CLEAN=1
       RUN_INSTALL=1
-      RUN_PASSWORDS=1
+      RUN_PASSWORDS=0
       ;;
     c)
       RUN_CLEAN=1
