@@ -47,6 +47,3 @@ row_limit = 100
 log_level = ERROR
 " >"${HOME}/.config/pgcli/config"
 }
-
-credentials() {
-}

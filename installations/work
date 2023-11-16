@@ -44,7 +44,3 @@ install() {
 
   docker_start
 }
-
-credentials() {
-
-}

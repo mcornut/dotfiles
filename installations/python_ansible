@@ -29,6 +29,3 @@ install() {
 
   pip install --user ansible passlib ansible-lint jmespath yamllint
 }
-
-credentials() {
-}

@@ -56,6 +56,3 @@ install() {
   archive_to_binary "https://github.com/ViBiOh/kmux/releases/download/${KMUX_VERSION}/kmux_$(normalized_os)_$(normalized_arch "" "arm" "arm64").tar.gz" "kmux"
   kmux completion bash >"${SCRIPT_DIR}/../sources/kmux-completion"
 }
-
-credentials() {
-}

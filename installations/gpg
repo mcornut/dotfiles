@@ -50,6 +50,3 @@ throw-keyids
 keyserver hkps://keys.openpgp.org" >"${HOME}/.gnupg/gpg.conf"
 
 }
-
-credentials() {
-}
