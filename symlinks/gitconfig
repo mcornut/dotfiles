@@ -113,3 +113,6 @@
 
 [url "ssh://git@github.com/fubotv/"]
 	insteadOf = https://github.com/fubotv/
+
+[url "ssh://git@github.com/mcornut/"]
+	insteadOf = https://github.com/mcornut/
