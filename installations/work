@@ -30,7 +30,6 @@ log_level = ERROR
 install() {
   if command -v brew >/dev/null 2>&1; then
     brew install mycli protobuf
-    brew install --cask tunnelblick
   fi
 
   go install "github.com/molotovtv/go-aws@master"
